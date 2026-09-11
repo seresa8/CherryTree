@@ -5,7 +5,20 @@ All notable changes to Cherry Tree by Seresa are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.2]
+
+### Fixed
+- **Indexing manual-submit — clipboard write and Brave popup no longer blocked by the browser** — `copyToClipboard()` and `openBraveSubmit()` ran after the AJAX fetch resolved, by which time the click's transient user-activation had expired; the clipboard write silently rejected and the popup was blocked. Both calls now fire synchronously inside the click handler while activation is live; the AJAX only updates the row state afterward. See `assets/js/admin/indexing/actions.js`.
+- **Test suite — `QueueRepositoryTest::test_transition_status_idea_to_queued_records_approver` no longer fails** — the test asserted `approved_by` against the *last* logged `update()`, but since 4.4.0 a successful idea→queued transition with a valid `citable_core` also fires an advisory source-liveness check that writes a second `research`-only update. The test now inspects the status-transition update (the one carrying `status`) rather than the last one. Production code was correct; the assertion was stale. See `tests/Unit/Database/QueueRepositoryTest.php`.
+
+### Added
+- **FAQ card styling** — `assets/css/frontend/faq.css` lifts the Yoast-canonical FAQ markup (`.schema-faq` › `.schema-faq-section` › `.schema-faq-question`/`.schema-faq-answer`) out of the surrounding body copy: each question/answer pair becomes its own card with a left accent bar, rounded border, and a muted answer tone. Theme-agnostic — colours derive from `currentColor` and a single `--ct-faq-accent` custom property (default Seresa pink `#b3325a`), so it inherits the theme's text colour on light or dark backgrounds and a theme can re-skin it by redefining the `--ct-faq-*` variables. Includes an `@supports` fallback for engines without `color-mix()`. Enqueued by `Frontend\FAQ_Styles` only on singular views containing a FAQ block.
+- **Test coverage for `Frontend\FAQ_Styles`** — new `tests/Unit/Frontend/FAQStylesTest.php` covers all three guard branches (non-singular, no post, no FAQ block) and the enqueue path (handle, source, version). The shared `get_post()` test stub now falls back to `$GLOBALS['post']` when called with no ID, mirroring WordPress. See `tests/stubs/wp-functions.php`.
+
 ## [4.4.1]
+
+### Added
+- **FAQ blocks now stand out from the article body** — a new frontend stylesheet (`assets/css/frontend/faq.css`, enqueued by `Frontend\FAQ_Styles`) lifts each Yoast-canonical FAQ question/answer pair into its own card with a left accent bar, so a FAQ no longer reads as an undifferentiated run of bold lines. Theme-agnostic: colours derive from `currentColor` and a `--ct-faq-accent` custom property, works on light or dark themes, and loads only on singular posts that contain a FAQ block.
 
 ### Changed
 - Updated WordPress tested-up-to version to 7.1.
@@ -389,6 +402,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed double-escaping of the rejected-by label in the Articles screen's row actions — rejecter names containing `&`, `'`, or `<` now display correctly instead of showing literal HTML entities.
 
 ## [4.1.2]
+
+### Fixed
+- The Index button now copies the article URL to the clipboard and opens the Brave submit page again. Both actions were running after the AJAX response (the Brave open behind a 1.5s timeout), by which point the browser had dropped the click's user activation, so the clipboard write was rejected and the popup was blocked. They now run synchronously in the click handler.
 
 ### Changed
 - The published articles list now floats items still needing indexing (no index date) to the top by default, so they no longer appear at random positions. An explicit column sort is still respected.
