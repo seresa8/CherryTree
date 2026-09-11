@@ -2,7 +2,7 @@
 
 > AI-optimized content system for WordPress. AI drafts article ideas, humans approve, AI writes, humans publish — driven over a REST API consumable by Claude skills.
 
-**Latest release: v4.4.1** · Requires PHP 8.3+ · WordPress 6.7+ (tested to 7.0.2) · License: BSL 1.1
+**Latest release: v4.4.1** · Requires PHP 8.3+ · WordPress 6.7+ (tested to 7.1) · License: BSL 1.1
 
 ---
 
@@ -31,7 +31,7 @@ AI proposes article ideas via the REST API, a human approves, AI writes the draf
 ## Requirements
 
 - PHP 8.3+
-- WordPress 6.7+ (tested up to 7.0.2)
+- WordPress 6.7+ (tested up to 7.1)
 
 ## Support
 
