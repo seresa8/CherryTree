@@ -5,6 +5,12 @@ All notable changes to Cherry Tree by Seresa are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.3]
+
+### Fixed
+- **Seeds dashboard phantom "Processing" count** — the seeds dashboard template, analytics dashboard, and `GET /seeds/stats` REST endpoint returned cached status counts without first flushing stale processing seeds, so items whose AI writer timed out continued to show as "Processing" until the 15-minute cron fired *and* the transient expired. All three paths now call `reset_stale_processing()` before reading counts, matching the queue dashboard pattern.
+- **Seed status-counts cache TTL aligned with queue at 60 seconds** — was 300 seconds (5 minutes), inconsistent with the queue repository's 60-second TTL and long enough to show stale counts on the dashboard. Stale docblock comments referencing the original 30-minute TTL also corrected.
+
 ## [4.4.2]
 
 ### Fixed
