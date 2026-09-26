@@ -5,6 +5,11 @@ All notable changes to Cherry Tree by Seresa are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.5]
+
+### Fixed
+- **Article could bind to the wrong queue item ("published against a different item than its research")** — the claim/release lifecycle can hand a writer a *different* item than the one whose research it wrote content for (a released claim re-claims as the next-highest item), which silently bound one article to another item's row and left the intended item unwritten. Closed with defense-in-depth: (1) `POST /posts` now rejects (HTTP 422, `rest_core_fidelity_mismatch`) any body that does not carry the **claimed** item's approved `citable_core` — server-side and unbypassable, since only the server holds the claimed row's research (`Core_Fidelity_Verifier`); (2) `ClaimSession.publish()` runs the same check locally before the POST for a fast fail (mirrored to the skill-template twin); (3) the stale-processing sweep window was raised from 15 to 45 minutes so a full write+audit session can no longer lose its claim mid-write (the 6-hour orphan cron still backstops crashes); (4) the `article-final` stage now states explicitly that claim → write → publish is one atomic block and content must never be carried across claims.
+
 ## [4.4.4]
 
 ### Fixed
