@@ -5,6 +5,11 @@ All notable changes to Cherry Tree by Seresa are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.4]
+
+### Fixed
+- **Python client leaked claims in "Processing" on clean block exit** — `TransportQueueMixin.claim_session()` and `claim_next_session()` released the claim only inside an `except Exception:` handler, so a `with` block that exited *cleanly without publishing* (e.g. an AI writer that claimed an item in one script run and wrote it in a separate run) left the item stranded in `processing` — invisible to `list_queue`/`claim_next` and recoverable only by the 15-minute stale sweep or 6-hour orphan cron. Both context managers now release on **any** block exit via `finally` (unless already published), so an abandoned claim returns to `queued` immediately. Mirrored to the baked skill-template twin. See `cherry_tree_client/_queue.py`.
+
 ## [4.4.3]
 
 ### Fixed
