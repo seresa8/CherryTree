@@ -5,6 +5,15 @@ All notable changes to Cherry Tree by Seresa are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.6]
+
+### Fixed
+- **Cross-reference links in published articles were 404ing.** The queue hydrator computed a `permalink_preview` by slugifying the queue **topic** (`/blog/{pillar}/{sanitize_title(topic)}/`), but a post's real slug is derived from its final **title** — so the guessed URL diverged on nearly every article, and the `article-final` stage was told to use it for same-session cross-links (pieces that sit in *review*, with no live URL until an owner approves them). Both facts made the footer "Related:" links point at slugs that never existed. `permalink_preview` is removed (`Queue_Hydration_Trait`); cross-links now target **already-published content only**, by real URL.
+
+### Added
+- **`GET /crosslinks` — relevance-ranked cross-link search across the whole published corpus.** Scores *every* published article **and** seed against the search terms (not a recency window, so an older-but-relevant piece still surfaces at ~30 articles/day) and returns a merged, ranked list of `{type, title, url, …}` with real, live URLs — article `post_url`, seed `/seed/{branch}/{slug}` via `Seed_Pages`. Backed by new `Queue_Repository::search_published()` and `Seed_Repository::search_published()` (prepared LIKE-scored queries with a `published_at` recency tiebreak), exposed to the content skill as `client.search_crosslinks(query, limit, exclude)`. The article row carries its `post_id` and the seed its `seed_id` so a seed can still record the ID-based `related_post_ids`/`related_seed_ids` mesh edge.
+- **Cross-links are now resolved + qualified at idea time and validated at write time.** The `article-ideas` and `seed-ideas` stages call `search_crosslinks` to store 2–4 real, published `{type, title, url}` in `research.cross_links`; the `article-final` and `seed-final` stages insert those links and re-validate each against the live corpus before publish, dropping any that no longer resolve. Same-session/in-review pieces and hand-built slugs are forbidden outright. Instruction-layer plus the endpoint above.
+
 ## [4.4.5]
 
 ### Fixed
