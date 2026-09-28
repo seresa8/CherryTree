@@ -5,6 +5,38 @@ All notable changes to Cherry Tree by Seresa are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.7]
+
+### Fixed
+- **Seed index button not resetting after manual indexing.** The "Brave Index" button on the seeds published tab stayed in its disabled/queued state after indexing because the page never reloaded. Added a 2-second delayed page reload after successful seed indexing, matching the bulk-index behaviour.
+- **Reject button shown on published seeds.** Published seeds displayed a "Reject" button that should only appear on Queued and In Review statuses. Removed it from the Published case to match articles behaviour.
+- **Published seeds not sorted by indexing need.** Un-indexed published seeds were not floated to the top of the list. Added the same `usort` float-to-top logic articles already use — seeds needing indexing now appear first unless the user explicitly sorts by a column.
+- **Search-engine indexing fired before editorial approval.** Cherry Bee queued URLs and `indexed_at` was stamped the moment the AI published the WP post — before the owner reviewed or approved. Rejected articles were already submitted to search engines. Indexing now defers to the explicit "Publish" action in the Cherry Tree admin: `Content_Hooks::on_status_transition` skips planning-queue posts, `Publish_Indexer` is a no-op, and `handle_update_status` fires `cherry_bee_seresa_queue_url` on approval.
+- **"Brave Index" button was disabled on arrival.** Because `indexed_at` was pre-stamped (see above), the button rendered as disabled with no chance to click it. Now `indexed_at` is only set when the user clicks "Brave Index".
+
+### Added
+- **"Brave Index" button on the Seeds published tab.** Seeds now have the same per-row manual Brave indexing as articles — click to copy the seed URL and open Brave's submit form. Backed by a new `cherry_tree_seed_index` AJAX action (`Seeds_Ajax_Handler::handle_index_seed`) and an `indexed_at` column added to the seeds table (DB 1.14.0). Cherry Bee also queues the seed URL automatically when a seed is published.
+- **Pagination on the Articles and Seeds admin screens.** Both dashboards now paginate at 20 items per page using WordPress's `paginate_links()`, replacing the previous 200-row hard cap. Items beyond 20 are no longer silently hidden.
+- **Internationalization (i18n) support with French and Spanish translations.** Generated `.pot` translation catalog (969 strings) and shipped complete `fr_FR` and `es_ES` translations under `languages/`. The plugin already called `load_plugin_textdomain`; this adds the files it loads. Contributors can add further languages by translating the `.pot`.
+
+### Removed
+- **"Index Selected" bulk action on the published tab.** Cherry Bee now queues automatically on publish, and Brave only accepts one URL at a time — the bulk button was redundant and its side-effect (stamping `indexed_at`) disabled the per-row "Brave Index" buttons.
+
+### Changed
+- **`template-functions.php` strict-types hardening.** Added `declare(strict_types=1)` and cast `$seed->id` to string before passing to `esc_attr()` for PHP 8.4 strict-type safety.
+- **Renamed "Index" button to "Brave Index"** on the published-items screen for clarity.
+- **Dismissible clipboard notice** shown once when "Brave Index" is clicked, informing the user the URL was copied. Auto-fades after 20 seconds; dismissed permanently via ✕ (uses `localStorage` so it never reappears).
+- **Audit cleanup (`indexing/actions.js`):** `showClipboardNotice()` now uses `const`/`let` instead of `var` (ESLint `no-var`) and drops its unused `url` parameter. No behaviour change.
+- **Audit cleanup (`Admin_Ajax_Handler::handle_update_status`):** the queue row is read once and reused for both the Cherry Bee indexing queue and the JSON response, instead of being fetched twice on publish. No behaviour change.
+
+### Tests
+- **New `seeds-bulk.test.js` test suite.** Added 9 tests covering `seeds/bulk.js` (seed bulk status actions bar): empty selection guard, confirm gates per status, approve/reject/publish flows, success toast, failure error reporting, non-OK HTTP response handling, and network reject fallback.
+- **HTTP error coverage across the JS suite.** Added `fetchNonOkOnce()` test helper and 8 new tests verifying that every AJAX module correctly routes non-OK HTTP responses to the error handler.
+
+### Security
+- **Added `response.ok` guards to all admin AJAX fetch calls.** A non-2xx HTTP response (e.g. 500, 403) previously fell through to `response.json()`, which silently failed on HTML error pages — masking server errors and producing confusing "unexpected token" exceptions instead of the intended error UI. All 14 fetch chains across `klaviyo.js`, `status-counts.js`, `articles-rows.js`, `items/modal.js`, `items/bulk.js`, `seeds/bulk.js`, `seeds/modal.js`, and `indexing/actions.js` now throw on non-OK responses, routing them to the `.catch()` error handler.
+- **Null-safe `data.data` property access in AJAX success handlers.** Several success branches accessed `data.data.property` without guarding `data.data`, which would throw if the server returned `{success: true}` with no nested payload. Added null guards in `klaviyo.js`, `items/modal.js`, `seeds/modal.js`, and `indexing/actions.js`.
+
 ## [4.4.6]
 
 ### Fixed
