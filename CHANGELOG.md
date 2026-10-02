@@ -5,6 +5,72 @@ All notable changes to Cherry Tree by Seresa are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.8]
+
+### Security
+
+All items below come from the full-plugin security audit of 2 October 2026
+(`readme/TODO-security-issues-oct2.md`). IDs refer to that report. Every fix lands
+with a matching unit test.
+
+- **🔒 SECURITY (H1/H2) — Anonymous seed reads no longer leak the unpublished pipeline.** `GET /seeds` and `GET /seeds/search` accepted any `status` from an unauthenticated caller; search returned full rows including the live `claim_token` and the internal `research` object. Anonymous callers are now pinned to published seeds, search strips internal fields for everyone, and `limit` is capped (L4, also on `/branches/{slug}/seeds`).
+- **🔒 SECURITY (H3) — Citation `source.url` is scheme-checked.** Both citable-core validators reject non-http(s) URLs and both research sanitizers run `esc_url_raw()` on them, closing a `javascript:` link in the admin review modal (API key → admin escalation). The admin JS also routes every href through a new `safeHref()` helper.
+- **🔒 SECURITY (M1) — SSRF hardening in `Source_Liveness_Verifier`.** `wp_safe_remote_request()` (rejects loopback, private-range and link-local hosts), http(s)-only scheme gate, 2 MB response cap, one redirect. Still fail-open for an invalid URL.
+- **🔒 SECURITY (M2) — The rate limiter can no longer be switched off with a header.** `X-CT-Diagnostic: 1` disabled every limit and the auth-failure meter. The WAF diagnostic now mints a one-shot random token into a short-lived transient; the limiter and the seed-claim short-circuit accept the header only when it `hash_equals()` that token.
+- **🔒 SECURITY (M3) — The API key is stripped from the WAF diagnostic's unverified-TLS retry.** The reachability probe still runs after a certificate failure, but without credentials.
+- **🔒 SECURITY (M4) — Seed status can no longer be written directly.** `PUT /seeds/{id}` drops `status` (transitions go through the status endpoints with claim token + sources gates), and the batch-import upsert refuses to rewrite seeds that are past `idea`/`queued`.
+- **🔒 SECURITY (M5) — The content skill never calls `requests` directly with the API key.** New client wrappers (`list_seeds`, `create_seed`, `claim_seed`, `claim_next_seed`, `update_seed`, `set_seed_status`, `list_categories`, `site_stats`, `create_idea`) route every stage call through `Transport._request` (cross-host redirect refusal, timeout). Stage prompts rewritten accordingly. Transport also refuses bodies whose `Content-Length` exceeds 10 MB (I4), fences wrong-shape JSON bodies as untrusted output (I3), and prefers the package-relative `baked/build.json` (I5). Both `cherry_tree_client/` twins updated.
+- **🔒 SECURITY (M6 / L10) — Cherry Bee secrets are no longer rendered into Settings HTML.** The Google service-account JSON (private key), Bing and IndexNow keys render empty with a "leave blank to keep" placeholder; "Reveal" fetches the value through a new nonce + `manage_options` AJAX endpoint (`Secret_Reveal_Ajax`); blank submit keeps the stored value; the Google and Bing options are taken out of autoload.
+- **🔒 SECURITY (M7) — The Help page no longer embeds the plaintext API key.** The copy button fetches it on click via the existing reveal endpoint and splices it into the clipboard text client-side.
+- **🔒 SECURITY (M8) — Updater hooks are registered under WP-Cron and WP-CLI again.** A 4.4.8 performance change had left `define_updater_hooks()` inside the admin-only gate, so auto-updates and `wp plugin update` never saw Cherry Tree releases. Per the project's threat model an owner cut off from security releases is a security failure.
+- **🔒 SECURITY (M9) — Posts are attributed to the configured `default_author`.** Previously a hard-coded user ID 3. The configured author is validated (exists, `publish_posts`); the constant is now a `!defined()`-guarded fallback.
+- **🔒 SECURITY (M10) — The API access log is pruned.** A daily `cherry_tree_cleanup_api_log` cron now calls the 90-day `cleanup()` that existed but had no caller (unbounded growth + PII retention from the public endpoints).
+- **🔒 SECURITY (M11) — The Cherry Bee log directory is guarded on every write.** `.htaccess` (Apache 2.2 + 2.4) and `index.php` are written whenever missing, so an upgrade without re-activation can never leave the web-served directory listable.
+- **🔒 SECURITY (L1)** — `X-Forwarded-For` is walked from the right behind a declared trusted proxy, so the client-controlled left-most hop cannot spoof the rate-limit key.
+- **🔒 SECURITY (L2)** — Bot/crawler User-Agents get a generous but finite hourly cap instead of unlimited access.
+- **🔒 SECURITY (L3)** — Seed-page hooks (title, meta, schema, cache headers, hit counter) act only when the request resolved to an assigned seed/branch/archive page; `?cherry_seed=…` on any other URL is ignored and the query vars cleared.
+- **🔒 SECURITY (L5)** — The public CTA click beacon is burst-limited per address (60/min), forwards the stored CTA's `button_url`, and derives page context from the real post when `page_id` resolves.
+- **🔒 SECURITY (L6)** — Single and bulk "index" actions submit the stored `post_url`, ignoring the client-supplied URL.
+- **🔒 SECURITY (L7)** — Cherry Bee dashboard actions (`process_now`, `scan_now`, `refresh_stats`) are read from `$_POST` only; result reasons are escaped before `add_settings_error()`.
+- **🔒 SECURITY (L8)** — The key-rotate response no longer returns the new plaintext key (the UI only needs the masked form).
+- **🔒 SECURITY (L9)** — The Klaviyo API-key field renders empty (blank = keep) instead of pre-filling the masked key.
+- **🔒 SECURITY (L11)** — The main logger strips CR/LF from messages (log-line forgery via a submitted URL).
+- **🔒 SECURITY (L12)** — Category names and author display names reach the setup AI as quoted, control-character-free data; the setup/edit prompts say they are labels, not instructions.
+- **🔒 SECURITY (L13)** — `Config_Secret_Scanner` also catches generic credential shapes (another install's `ct-prod-…` key, AWS, private-key blocks, GitHub, Stripe/Klaviyo live keys, Slack, Google); this install's own key is exempt by exact match. Word-like placeholder markers now match on word boundaries ("XXXL" no longer blocks a build).
+- **🔒 SECURITY (L14 / L15)** — `uninstall.php` removes the encrypted Klaviyo/proxy keys and every other `cherry_tree_*` / `cherry_bee_seresa_*` option it had missed, with a prefix sweep as backstop; the legacy IndexNow key-file deletion validates the key shape before building a path.
+- **🔒 SECURITY (L16)** — The updater's release-digest parser anchors to the generated `sha256:` line and takes the last match, so a changelog entry that mentions a digest cannot cause a false checksum mismatch.
+
+### Fixed
+- **Cross-link validation is now a single API call instead of a dozen — measured 11 → 1 in production.** The write stage's cross-link step was quietly falling back to a brute-force scan: `search_crosslinks()` (one relevance-ranked `GET /crosslinks` pass over the entire published corpus of articles *and* seeds) lived on the transport mixin but was never exposed on the `CherryTreeClient` facade, so the `client.search_crosslinks(...)` call the stage is told to make raised `AttributeError` and dropped to `find_published_by_keyword` — which re-pulls a capped recency page of `/published` and filters it client-side, once per keyword. Real runs showed **11 `/published` calls** for a single article's cross-links. Exposing the one-line facade wrapper restores the intended path: a production run after the fix (post 9930) used **exactly one `/crosslinks` call and zero `/published` calls**. Both `cherry_tree_client/` twins updated.
+- **Content-skill router no longer misroutes on the singular "idea".** The routing table in `SKILL.md` and the wrong-stage guard in `article-ideas.md` now explicitly distinguish singular "idea" (a starting-point reference → WRITE) from plural "ideas" (generate ideas → ideas stage). Fixes an intermittent misroute observed across five sessions.
+- **Python client warns loudly when a claim releases without publishing.** `claim_next_session()` now prints a clear stderr warning when the `with` block exits before `publish()` was called, telling the session not to re-claim. Previously the release was silent, letting slow sessions unknowingly split the atomic block across script runs.
+- **Bulk-publishing seeds did not queue for Cherry Bee indexing.** The single `handle_update_status` queued published seeds for search-engine indexing, but `handle_bulk_update_status` skipped it — bulk-published seeds were never submitted to Cherry Bee.
+- `Admin_Settings_Handler::handle_save_protected_categories` drops non-scalar entries from the decoded ID list (a nested array silently protected category 1).
+- `Deactivator::unschedule_cron_events` and `uninstall.php` list the same cron events again.
+- Removed the non-standard `LAST AUDITED … CERTIFIED` stamp from `includes/template-functions.php` (only `Last Audited:` is the project convention).
+
+### Added
+- **Build version in all log entries.** Both PHP loggers (Cherry Tree + Indexing) and the Python client now tag every log line with the plugin version, so the exact build in use is visible in every log entry for debugging.
+- `/info` endpoint now returns `plugin_version`; `baked/build.json` includes it too so the Python client can tag logs even before boot.
+- Python client: tagged `_log()` helper replaces raw `print(…, stderr)` — every line carries the client version, plugin version, and build date.
+- `Secret_Reveal_Ajax` (Indexing admin) — nonce + `manage_options` endpoint that returns one allow-listed Cherry Bee secret on demand.
+- Python client: seed/category/stats/queue-create wrappers (see M5), `Transport.MAX_RESPONSE_BYTES`, `extra_headers` and PUT/PATCH support in `_request`.
+- Admin JS: `safeHref()` in `utils/escape.js`.
+- Unit tests for every item above (PHP 3234, JS 229, Python 253).
+
+### Performance
+- **Eliminated duplicate `get_by_id` query on seed publish.** `Seeds_Ajax_Handler::handle_update_status()` called `get_by_id` twice on the publish path (once for indexing, once for the response). Hoisted the fetch so one query serves both.
+- **Cron requests no longer load admin-only hooks.** Removed `wp_doing_cron()` from the admin-hooks gate in `Plugin_Core`; cron callbacks live in `define_cron_hooks()` and never need admin menu/AJAX wiring, so the extra class instantiation was pure overhead.
+- **Bulk approve/reject/publish is dramatically faster.** Approving a batch of freshly produced articles or seeds could take 40+ seconds because each item re-verified its cited source URLs over HTTP on approval, sequentially. These checks now **skip for recently produced items** — their sources were just fetched during research, so re-checking buys nothing — via a freshness window (default 24h) filterable with `cherry_tree_source_liveness_max_age` (return 0 to always re-check). Stale items (older than the window) are still verified as before.
+- **Status-counts cache is flushed once per bulk run, not once per row.** `Queue_Repository::transition_status()` / `Seed_Repository::transition_status()` and their `update()` take a `$defer_counts_cache` flag; the bulk handlers pass it and clear the cache a single time after the loop, removing dozens of redundant transient deletes and option writes per bulk action.
+
+### Fixed
+- **WPCS short array syntax violation in `Admin_Settings_Handler`.** Replaced `[]` with `array()` in `handle_save_protected_categories` fallback.
+
+### Changed
+- **Article write stage now claims an item once and holds it to publish — measured ~6 claims-per-article down to 1 in production.** This was the biggest reliability drag in the content pipeline and a latent data-integrity risk. Server logs showed a consistent **~6 claim/release cycles per published article** (worst case 11), because the stage used the `claim_next_session()` context manager, which released the lock the instant a script exited. The AI naturally works across several script runs, so every time it came back it had to re-claim — and a re-claim can hand back a *different* item, risking content being published against the wrong queue row (the 422 fidelity gate was the only thing preventing corruption). The server already holds a claim across process exits for its full 45-minute window (raised in 4.4.4 precisely to cover one write session), so the fix is client-side + instructional: the stage now claims with `claim_next()` / `claim(id)` (no auto-release), persists `(item, claim_token)`, composes across as many scripts as it needs, and publishes via the new `CherryTreeClient.resume_claim(item, token)` — **never claiming twice.** A production run after the fix (post 9930) spanned three script executions yet recorded **one claim and zero releases**. Explicit `release(queue_id)` is kept for the abort path. `article-final.md`, `invariants.md`, and both `cherry_tree_client/` twins updated; the server-side claim mechanism is unchanged.
+- **Split `Admin_Ajax_Handler` (852 → 482 lines).** The oversized admin AJAX handler was past the 500-line ceiling. Bulk operations (`handle_bulk_index`, `handle_bulk_publish`, `handle_bulk_update_status`) moved to a new `Admin_Bulk_Handler`, and settings-save operations (`handle_save_protected_categories`, `handle_save_content_destination`, `handle_save_seed_page_settings`) moved to a new `Admin_Settings_Handler`. AJAX action names and behaviour are unchanged; only the class wiring in `Plugin_Core::define_admin_hooks()` differs. Tests split to match (`AdminSettingsHandlerTest` added).
+
 ## [4.4.7]
 
 ### Fixed
