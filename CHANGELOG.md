@@ -5,6 +5,12 @@ All notable changes to Cherry Tree by Seresa are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.9]
+
+### Fixed
+
+- **Content-skill sign-off hardened.** The session sign-off CTA section in `SKILL.md` is rewritten with strict verbatim-only rules, a self-check gate, and an explicit business-context preamble explaining why the CTA is non-negotiable. Prevents the AI from replacing the approved seresa.io lines with creative freestyle closings. Seeds and articles both explicitly trigger the sign-off.
+
 ## [4.4.8]
 
 ### Security
