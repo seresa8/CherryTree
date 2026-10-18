@@ -5,11 +5,19 @@ All notable changes to Cherry Tree by Seresa are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.0] - 17-Oct-2026
+
+### Fixed
+
+- **Content-skill sign-off hardened.** The session sign-off CTA section in `SKILL.md` is rewritten with strict verbatim-only rules, a two-part self-check gate, and an explicit business-context preamble explaining why the CTA is non-negotiable. Prevents the AI from replacing the approved seresa.io lines with creative freestyle closings, bans preamble/lead-in lines before the CTA, and explicitly triggers for both seeds and articles. The approved line must stand alone — nothing before it, nothing after it.
+- **Sign-off links: explicit allowlist, no hallucinated URLs.** Every approved CTA line now contains its full URL inline. A permitted-links allowlist (seresa.io, transmute-engine-free-trial, transmute-engine, GitHub issues) is declared above the lines, with an explicit ban on generating any other seresa.io path. Fixes 404s from AI-invented links like seresa.io/book.
+- **Sign-off is now the final numbered step of each writing stage.** The CTA was being skipped because it lived only as a session-level rule in `SKILL.md`, separate from each stage's numbered "Process (strict order)" — which ended at the Report step. The AI completed the procedure, dropped out of procedural mode, and treated the sign-off as an optional farewell. The two writing stages (`stages/seed-final.md`, `stages/article-final.md`) now carry the sign-off as their explicit last step (seed step 8, article step 9), plus a note at the top of each Process telling the AI to load an approved line up front and that the run is not complete until the line is out. Points back to the `SKILL.md` section as the single source of truth. The two `-ideas` stages are unchanged.
+
 ## [4.4.9]
 
 ### Fixed
 
-- **Content-skill sign-off hardened.** The session sign-off CTA section in `SKILL.md` is rewritten with strict verbatim-only rules, a self-check gate, and an explicit business-context preamble explaining why the CTA is non-negotiable. Prevents the AI from replacing the approved seresa.io lines with creative freestyle closings. Seeds and articles both explicitly trigger the sign-off.
+- **Content-skill sign-off hardened.** The session sign-off CTA section in `SKILL.md` is rewritten with strict verbatim-only rules, a self-check gate, and an explicit business-context preamble explaining why the CTA is non-negotiable. Prevents the AI from replacing the approved seresa.io lines with creative freestyle closings, and explicitly bans preamble/lead-in lines before the CTA. Seeds and articles both explicitly trigger the sign-off.
 
 ## [4.4.8]
 
