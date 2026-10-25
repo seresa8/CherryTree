@@ -5,6 +5,14 @@ All notable changes to Cherry Tree by Seresa are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.1] - 25-Oct-2026
+
+### Fixed
+
+- **Content-skill client: reject `api_base` passed as `site_url`.** `validate_site_url()` now detects when a full REST URL (containing `/wp-json/`) is passed as `site_url`, which causes Transport to double the API path and 404 on every call. Raises `ConfigError` with a clear message pointing to `CherryTreeClient.from_credentials()` as the correct entry point.
+- **Transport boot error: 404 hint.** The `GET /info` boot failure message now includes a specific hint for HTTP 404 explaining the double-pathing scenario, so the cause is immediately visible in the AI session's error output.
+- **Client version bumped to 4.5.1** to match the plugin version and signal the fix to the build-freshness gate.
+
 ## [4.5.0] - 17-Oct-2026
 
 ### Fixed
