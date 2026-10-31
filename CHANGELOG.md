@@ -5,6 +5,12 @@ All notable changes to Cherry Tree by Seresa are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.2] - 31-Oct-2026
+
+### Fixed
+
+- **Unindexed articles/seeds now float to top across all pages.** The "unindexed first" sort was applied in PHP after pagination, so unindexed items on page 2+ stayed buried. Sort is now `indexed_at IS NULL DESC` at the DB level, applied before LIMIT/OFFSET, so every unindexed item appears before any indexed one regardless of publish date.
+
 ## [4.5.1] - 25-Oct-2026
 
 ### Fixed
