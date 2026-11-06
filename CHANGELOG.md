@@ -5,6 +5,12 @@ All notable changes to Cherry Tree by Seresa are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.3] - 06-Nov-2026
+
+### Fixed
+
+- **Articles list now re-sorts after indexing.** Clicking "Brave Index" on the articles list updated the row inline but never triggered the live row refresh, so the table kept its old sort order until a manual reload. Seeds already reloaded the page. Articles now dispatch the `cherry-tree:counts-updated` event on success, which the existing `articles-rows.js` live-refresh picks up to re-fetch and re-sort the table without a full page reload.
+
 ## [4.5.2] - 31-Oct-2026
 
 ### Fixed
