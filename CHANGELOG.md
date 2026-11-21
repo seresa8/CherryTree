@@ -5,6 +5,23 @@ All notable changes to Cherry Tree by Seresa are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.5.6] - 21-Nov-2026
+
+### Fixed
+
+- **Published articles list no longer scrambles its columns, and advances correctly after a Brave Index click.** Two bugs compounded here. (1) The live-refresh AJAX handler (`Rows_Ajax_Handler`) still listed `published` among the statuses that get a bulk-select checkbox column, but the articles template dropped that column from the published view — so every live-refreshed published row carried a phantom checkbox cell the header lacked, shifting every column one to the right (topic under *Pillar*, the "not indexed" dash under *Actions*, and the list appearing unsorted). `published` has been removed from the handler's `CHECKBOX_STATUSES` to match the template. (2) Clicking "Brave Index" on an article now does a full page reload — identical to the seeds list — instead of the partial live re-sync (added in 4.5.3), which re-rendered rows that diverged from the full-page layout and never reliably fired after the Brave tab stole focus. The reload re-runs the server's own float-unindexed sort, so the indexed item drops below the un-indexed ones and the next one to index moves to the top.
+
+## [4.5.4] - 21-Nov-2026
+
+### Added
+
+- **Seed published dates now visible on frontend.** Single seed pages show the published date and clickable branch category between the breadcrumb and the title. Seed cards on archive/branch grids show the published date above each question heading. Date format is `j M Y` (e.g. 21 Nov 2026). Uses existing CSS custom properties for automatic dark-theme support.
+
+### Changed
+
+- **Replaced all `gmdate()` calls with `wp_date()`.** All 25 occurrences across 14 files now use the WordPress-native `wp_date()` with an explicit UTC `DateTimeZone` and `?: ''` fallback for the `string|false` return type. No behavioural change — timestamps remain UTC.
+- **Term_Meta: type-safe meta returns and short-ternary removal.** `get_entity_meta()` now uses `is_string()` checks instead of truthy coercion for meta values. `sanitize_iso_date()` replaces the WPCS-disallowed short ternary with an explicit conditional.
+
 ## [4.5.3] - 06-Nov-2026
 
 ### Fixed
